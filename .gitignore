@@ -1,0 +1,13 @@
+node_modules/
+.node_modules/
+dist/
+.env
+.DS_Store
+.vscode/
+.idea/
+*.log
+coverage/
+*.tsbuildinfo
+carbonemission_backup_09_01_26.sql
+farnek_backup_09_01_26.sql
+farnek_CarbonEmission.sql
