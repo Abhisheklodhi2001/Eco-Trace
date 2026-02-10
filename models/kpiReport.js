@@ -955,7 +955,7 @@ module.exports = {
             const kpiId = kpiIdList[i];
             const queryParams = [facilityIds, kpiId];
             let query = `
-                SELECT year, ROUND(SUM(annual), 2) AS total_annual, 
+                SELECT year, ROUND(SUM(annual), 4) AS total_annual, 
                        tbl_kpi_inventory.kpi_item_id, 
                        kpi_Items_list.kpi_name,
                        kpi_Items_list.unit,
@@ -1081,18 +1081,18 @@ module.exports = {
                     kpi_Items_list.kpi_name,
                     kpi_Items_list.unit,
                     tbl_kpi_inventory.kpi_item_id,
-                    ROUND(SUM(jan), 2) AS jan,
-                    ROUND(SUM(feb), 2) AS feb,
-                    ROUND(SUM(mar), 2) AS mar,
-                    ROUND(SUM(apr), 2) AS apr,
-                    ROUND(SUM(may), 2) AS may,
-                    ROUND(SUM(jun), 2) AS jun,
-                    ROUND(SUM(jul), 2) AS jul,
-                    ROUND(SUM(aug), 2) AS aug,
-                    ROUND(SUM(sep), 2) AS sep,
-                    ROUND(SUM(oct), 2) AS oct,
-                    ROUND(SUM(nov), 2) AS nov,
-                    ROUND(SUM(\`dec\`), 2) AS \`dec\`,
+                    ROUND(SUM(jan), 4) AS jan,
+                    ROUND(SUM(feb), 4) AS feb,
+                    ROUND(SUM(mar), 4) AS mar,
+                    ROUND(SUM(apr), 4) AS apr,
+                    ROUND(SUM(may), 4) AS may,
+                    ROUND(SUM(jun), 4) AS jun,
+                    ROUND(SUM(jul), 4) AS jul,
+                    ROUND(SUM(aug), 4) AS aug,
+                    ROUND(SUM(sep), 4) AS sep,
+                    ROUND(SUM(oct), 4) AS oct,
+                    ROUND(SUM(nov), 4) AS nov,
+                    ROUND(SUM(\`dec\`), 4) AS \`dec\`,
                     (SELECT monthly FROM tbl_kpi_target WHERE user_id = ${user_id} AND kpi_id = ${kpiId}) AS target_value
                 FROM tbl_kpi_inventory
                 LEFT JOIN kpi_Items_list 
