@@ -5188,15 +5188,15 @@ kpiQueue.process(async (job) => {
 
     const kpiResponses = {
         stationary: stationary,
-        stationaryCombustion: stationaryCombustion.data,
-        energy: energy.data,
-        passengerVehicle: passengerVehicle.data,
-        transportVehicle: transportVehicle.data,
-        businessTravel: businessTravel.data,
-        employeeCommute: employeeCommute.data,
-        waste: waste.data,
-        water: water.data,
-        generalData: generalData.data,
+        stationaryCombustion: stationaryCombustion,
+        energy: energy,
+        passengerVehicle: passengerVehicle,
+        transportVehicle: transportVehicle,
+        businessTravel: businessTravel,
+        employeeCommute: employeeCommute,
+        waste: waste,
+        water: water,
+        generalData: generalData,
         fuelConsumption: {
             type1: fuelType1.data,
             type2: fuelType2.data,
@@ -5333,9 +5333,9 @@ kpiQueue.process(async (job) => {
 
             /* -------- WASTE -------- */
 
-            "Emissions in waste treatment": emptyNull12(kpi?.waste?.data?.waste_emissions.length == 12 ? kpi?.waste?.data?.waste_emissions : kpi?.waste?.data?.waste_emissions.slice(1, 13)),
-            "Waste Generated": emptyNull12(kpi?.waste?.data?.waste_disposed.length == 12 ? kpi?.waste?.data?.waste_disposed : kpi?.waste?.data?.waste_disposed.slice(1, 13)),
-            "Waste Diverted": emptyNull12(kpi?.waste?.data?.diverted_emssion.length == 12 ? kpi?.waste?.data?.diverted_emssion : kpi?.waste?.data?.diverted_emssion.slice(1, 13)),
+            "Emissions in waste treatment": emptyNull12(kpi?.waste?.waste_emissions.length == 12 ? kpi?.waste?.waste_emissions : kpi?.waste?.waste_emissions.slice(1, 13)),
+            "Waste Generated": emptyNull12(kpi?.waste?.waste_disposed.length == 12 ? kpi?.waste?.waste_disposed : kpi?.waste?.waste_disposed.slice(1, 13)),
+            "Waste Diverted": emptyNull12(kpi?.waste?.diverted_emssion.length == 12 ? kpi?.waste?.diverted_emssion : kpi?.waste?.diverted_emssion.slice(1, 13)),
 
             /* -------- WATER -------- */
 
