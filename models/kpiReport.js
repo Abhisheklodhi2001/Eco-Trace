@@ -1223,5 +1223,32 @@ module.exports = {
 
     kpiInventoryRevenue: async (facilitiesdata, base_year, current_year) => {
         return await db.query(`SELECT B.ID AS facility_id, B.AssestName, A.year, SUM(A.annual) AS annual FROM \`dbo.facilities\` B LEFT JOIN tbl_kpi_inventory A ON A.facility_id = B.ID AND A.year BETWEEN '${base_year}' AND '${current_year}' WHERE B.ID IN (${facilitiesdata}) AND A.kpi_item_id = 6 GROUP BY A.year;`);
+    },
+
+    // ----------------------------------------- KPI Inventory End-----------------------------------------
+
+    saveTemp: async (facilityId, year, step, data) => {
+        await db.query(
+            `REPLACE INTO kpi_inventory_temp (facility_id, year, step, json_data)
+         VALUES (?, ?, ?, ?)`,
+            [facilityId, year, step, JSON.stringify(data)]
+        );
+    },
+
+    getTemp: async (facilityId, year, step) => {
+        const [rows] = await db.query(
+            `SELECT json_data FROM kpi_inventory_temp
+         WHERE facility_id=? AND year=? AND step=?`,
+            [facilityId, year, step]
+        );
+        return rows.length ? JSON.parse(rows[0].json_data) : {};
+    },
+
+    deleteTemp: async (facilityId, year) => {
+        return await db.query(
+            `DELETE FROM kpi_inventory_temp
+         WHERE facility_id=? AND year=?`,
+            [facilityId, year]
+        );
     }
 };

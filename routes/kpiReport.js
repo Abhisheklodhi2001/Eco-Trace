@@ -29,4 +29,10 @@ router.post("/getKpiInventoryEmissionIntensity", auth, kpiReportController.getKp
 router.get("/triggerKpiInventoryCalculation", auth, kpiReportController.triggerKpiInventoryCalculation);
 router.post("/addTriggerKpiTarget", auth, kpiReportController.addTriggerKpiTarget);
 
+// STEP APIs
+router.post("/step1", kpiReportController.kpiStep1);
+router.post("/step2", kpiReportController.kpiStep2);
+router.post("/step3", kpiReportController.kpiStep3);
+router.post("/step4", kpiReportController.kpiStep4);
+
 module.exports = router;

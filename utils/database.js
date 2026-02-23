@@ -1,20 +1,20 @@
 const mysql = require('mysql2');
 const util = require('util');
 
-// var db_config = {
-//   host: '13.200.247.29',
-//   user: 'jerry',
-//   password: 'jerrypassword',
-//   port: 3306,
-//   database: 'CarbonEmission',
-//   waitForConnections: true,
-//   connectionLimit: 10,
-//   queueLimit: 0,
-//   connectTimeout: 10000,     // 10 seconds
-//   acquireTimeout: 10000,
-//   enableKeepAlive: true,     // keep TCP connections alive
-//   keepAliveInitialDelay: 0
-// };
+var db_config = {
+  host: '13.200.247.29',
+  user: 'jerry',
+  password: 'jerrypassword',
+  port: 3306,
+  database: 'CarbonEmission',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  connectTimeout: 10000,     // 10 seconds
+  acquireTimeout: 10000,
+  enableKeepAlive: true,     // keep TCP connections alive
+  keepAliveInitialDelay: 0
+};
 
 // var db_config = {
 //   host: 'localhost',
@@ -31,20 +31,20 @@ const util = require('util');
 //   keepAliveInitialDelay: 0
 // };
 
-var db_config = {
-  host: '172.19.1.68',
-  user: 'farnek',
-  password: 'Carbondata#2205',
-  port: 3306,
-  database: 'CarbonEmission',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  connectTimeout: 10000,     // 10 seconds
-  acquireTimeout: 10000,
-  enableKeepAlive: true,     // keep TCP connections alive
-  keepAliveInitialDelay: 0
-};
+// var db_config = {
+//   host: '172.19.1.68',
+//   user: 'farnek',
+//   password: 'Carbondata#2205',
+//   port: 3306,
+//   database: 'CarbonEmission',
+//   waitForConnections: true,
+//   connectionLimit: 10,
+//   queueLimit: 0,
+//   connectTimeout: 10000,     // 10 seconds
+//   acquireTimeout: 10000,
+//   enableKeepAlive: true,     // keep TCP connections alive
+//   keepAliveInitialDelay: 0
+// };
 
 var connection;
 
