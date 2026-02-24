@@ -30,9 +30,9 @@ router.get("/triggerKpiInventoryCalculation", auth, kpiReportController.triggerK
 router.post("/addTriggerKpiTarget", auth, kpiReportController.addTriggerKpiTarget);
 
 // STEP APIs
-router.post("/step1", kpiReportController.kpiStep1);
-router.post("/step2", kpiReportController.kpiStep2);
-router.post("/step3", kpiReportController.kpiStep3);
-router.post("/step4", kpiReportController.kpiStep4);
+router.get("/kpi/step1", auth, kpiReportController.kpiStep1);
+router.get("/kpi/step2", auth, kpiReportController.kpiStep2);
+router.get("/kpi/step3", auth, kpiReportController.kpiStep3);
+router.get("/kpi/step4", auth, kpiReportController.kpiStep4);
 
 module.exports = router;

@@ -4,6 +4,7 @@ const donfig = require("../config");
 
 const { getSelectedColumn } = require("../models/common");
 const kpiModel = require("../models/kpiReport");
+const kpiFunction = require("../utils/kpiFunction");
 
 exports.kpiInventory = async (req, res) => {
     try {
@@ -3755,29 +3756,33 @@ exports.kpiStep1 = async (req, res) => {
             .map(f => f.trim())
             .filter(Boolean);
 
-        const results = [];
+        const results = await Promise.all(
+            facilityList.map(async (facilityId) => {
 
-        for (const facilityId of facilityList) {
+                const [
+                    stationary,
+                    energy,
+                    passengerVehicle
+                ] = await Promise.all([
+                    kpiFunction.kpiInventory({ facilities: facilityId, year, user_id }),
+                    kpiFunction.kpiInventoryEnergyUse({ facilities: facilityId, year, user_id }),
+                    kpiFunction.kpiInventoryPassengerVehicleEmission({ facilities: facilityId, year, user_id })
+                ]);
 
-            // 🔹 Step1 Functions Call
-            const stationary = await kpiInventory({ facilityId, year, user_id });
-            const energy = await kpiInventoryEnergyUse({ facilityId, year, user_id });
-            const passengerVehicle = await kpiInventoryPassengerVehicleEmission({ facilityId, year, user_id });
+                const data = {
+                    stationary,
+                    energy,
+                    passengerVehicle
+                };
 
-            const data = {
-                stationary,
-                energy,
-                passengerVehicle
-            };
+                await kpiModel.saveTemp(facilityId, year, "step1", data);
 
-            // 🔹 Temp Save per facility
-            await kpiModel.saveTemp(facilityId, year, "step1", data);
-
-            results.push({
-                facilityId,
-                status: "step1 completed"
-            });
-        }
+                return {
+                    facilityId,
+                    status: "step1 completed"
+                };
+            })
+        );
 
         return res.status(200).json({
             success: true,
@@ -3820,26 +3825,33 @@ exports.kpiStep2 = async (req, res) => {
         .map(f => f.trim())
         .filter(Boolean);
 
-    const results = [];
-    for (const facilityId of facilityList) {
-        const transportVehicle = await kpiInventoryTransportVehicle({ facilityId, year, user_id });
-        const businessTravel = await kpiInventoryBusinessTravel({ facilityId, year, user_id });
-        const employeeCommute = await kpiInventoryEmployeeCommute({ facilityId, year, user_id });
+    const results = await Promise.all(
+        facilityList.map(async (facilityId) => {
+            const [
+                transportVehicle,
+                businessTravel,
+                employeeCommute
+            ] = await Promise.all([
+                kpiFunction.kpiInventoryTransportVehicle({ facilities: facilityId, year, user_id }),
+                kpiFunction.kpiInventoryBusinessTravel({ facilities: facilityId, year, user_id }),
+                kpiFunction.kpiInventoryEmployeeCommute({ facilities: facilityId, year, user_id })
+            ]);
 
-        const data = {
-            transportVehicle,
-            businessTravel,
-            employeeCommute
-        };
+            const data = {
+                transportVehicle,
+                businessTravel,
+                employeeCommute
+            };
 
-        // 🔹 Temp Save per facility
-        await kpiModel.saveTemp(facilityId, year, "step2", data);
+            // 🔹 Temp Save per facility
+            await kpiModel.saveTemp(facilityId, year, "step2", data);
 
-        results.push({
-            facilityId,
-            status: "step2 completed"
-        });
-    }
+            return {
+                facilityId,
+                status: "step2 completed"
+            };
+        })
+    );
 
     return res.status(200).json({
         success: true,
@@ -3875,27 +3887,33 @@ exports.kpiStep3 = async (req, res) => {
         .map(f => f.trim())
         .filter(Boolean);
 
-    const results = [];
+    const results = await Promise.all(
+        facilityList.map(async (facilityId) => {
+            const [
+                waste,
+                water,
+                generalData
+            ] = await Promise.all([
+                kpiFunction.kpiInventoryWasteGenerated({ facilities: facilityId, year, user_id }),
+                kpiFunction.kpiInventoryWaterUsage({ facilities: facilityId, year, user_id }),
+                kpiFunction.kpiInventoryGeneralData({ facilities: facilityId, year, user_id })
+            ]);
 
-    for (const facilityId of facilityList) {
-        const waste = await kpiInventoryWasteGenerated({ facilityId, year, user_id });
-        const water = await kpiInventoryWaterUsage({ facilityId, year, user_id });
-        const generalData = await kpiInventoryGeneralData({ facilityId, year, user_id });
+            const data = {
+                waste,
+                water,
+                generalData
+            };
 
-        const data = {
-            waste,
-            water,
-            generalData
-        };
+            // 🔹 Temp Save per facility
+            await kpiModel.saveTemp(facilityId, year, "step3", data);
 
-        // 🔹 Temp Save per facility
-        await kpiModel.saveTemp(facilityId, year, "step3", data);
-
-        results.push({
-            facilityId,
-            status: "step3 completed"
-        });
-    }
+            return {
+                facilityId,
+                status: "step3 completed"
+            };
+        })
+    );
 
     return res.status(200).json({
         success: true,
@@ -3931,37 +3949,271 @@ exports.kpiStep4 = async (req, res) => {
         .map(f => f.trim())
         .filter(Boolean);
 
-    const results = [];
+    const results = await Promise.all(
+        facilityList.map(async (facilityId) => {
+            const [
+                stationaryCombustion,
+                fuel1,
+                fuel2,
+                fuel3,
+                step1,
+                step2,
+                step3
+            ] = await Promise.all([
+                kpiFunction.kpiInventoryStationaryCombustionde({ facilities: facilityId, year, user_id }),
+                kpiFunction.kpiInventoryFuelConsumption({ facilities: facilityId, year, user_id, type_id: 1 }),
+                kpiFunction.kpiInventoryFuelConsumption({ facilities: facilityId, year, user_id, type_id: 2 }),
+                kpiFunction.kpiInventoryFuelConsumption({ facilities: facilityId, year, user_id, type_id: 3 }),
+                kpiModel.getTemp(facilityId, year, "step1"),
+                kpiModel.getTemp(facilityId, year, "step2"),
+                kpiModel.getTemp(facilityId, year, "step3")
+            ]);
 
-    for (const facilityId of facilityList) {
-        const stationaryCombustion = await getKpiInventoryStationaryCombustionde(facilityId, year);
-        const fuel1 = await kpiInventoryFuelConsumption(facilityId, year, 1);
-        const fuel2 = await kpiInventoryFuelConsumption(facilityId, year, 2);
-        const fuel3 = await kpiInventoryFuelConsumption(facilityId, year, 3);
+            const kpiResponses = {
+                ...step1,
+                ...step2,
+                ...step3,
+                stationaryCombustion,
+                fuelConsumption: {
+                    type1: fuel1.data,
+                    type2: fuel2.data,
+                    type3: fuel3.data
+                }
+            };
 
-        const step1 = await getTemp(facilityId, year, "step1");
-        const step2 = await getTemp(facilityId, year, "step2");
-        const step3 = await getTemp(facilityId, year, "step3");
+            const normalize12 = (arr = []) =>
+                Array.from({ length: 12 }, (_, i) => {
+                    const v = arr?.[i];
+                    if (v === null || v === undefined || v === "") return null;
+                    return Number(v);
+                });
 
-        const kpiResponses = {
-            ...step1,
-            ...step2,
-            ...step3,
-            stationaryCombustion,
-            fuelConsumption: {
-                type1: fuel1,
-                type2: fuel2,
-                type3: fuel3
-            }
-        };
+            const sumAnnual = (arr = []) =>
+                arr.reduce((t, v) => t + (v == null ? 0 : Number(v)), 0);
 
-        const finalJson = buildFinalInventoryJson(kpiResponses);
+            const emptyNull12 = (arr = []) => ({
+                annual: arr.length ? sumAnnual(arr) : null,
+                monthly: arr.length ? normalize12(arr) : Array(12).fill(null)
+            });
 
-        await addKpiInventory(facilityId, year, finalJson);
+            const emptyZero12 = (arr = []) => ({
+                annual: arr.length ? sumAnnual(arr) : 0,
+                monthly: arr.length ? normalize12(arr) : Array(12).fill(0)
+            });
 
-        await deleteTemp(facilityId, year);
+            const buildFinalInventoryJson = (kpi) => {
+                const stationary = kpi.stationary;
 
-    }
+                /* ================= SCOPES (FROM STATIONARY ONLY) ================= */
+
+                const scope1Monthly = normalize12(stationary?.series?.[0]?.data);
+                const scope2Monthly = normalize12(stationary?.series?.[1]?.data);
+                const scope3Monthly = normalize12(stationary?.series?.[2]?.data);
+
+                const totalEmissionsMonthly = scope1Monthly.map((_, i) =>
+                    Number(
+                        (scope1Monthly[i] ?? 0) +
+                        (scope2Monthly[i] ?? 0) +
+                        (scope3Monthly[i] ?? 0)
+                    ).toFixed(3)
+                ).map(Number);
+
+                /* ================= ENERGY ================= */
+
+                const heatingCooling = normalize12(kpi.energy?.data?.heatingCooling.length == 12 ? kpi.energy?.data?.heatingCooling : kpi.energy?.data?.heatingCooling.slice(1, 13));
+                const electricity = normalize12(kpi.energy?.data?.electricity.length == 12 ? kpi.energy?.data?.electricity : kpi.energy?.data?.electricity.slice(1, 13));
+                const renewable = normalize12(kpi.energy?.data?.renewableElectricity.length == 12 ? kpi.energy?.data?.renewableElectricity : kpi.energy?.data?.renewableElectricity.slice(1, 13));
+
+                const totalEnergyConsumed = normalize12(kpi.energy?.data?.renewableElectricity.length == 12 ? kpi.energy?.data?.renewableElectricity : kpi.energy?.data?.renewableElectricity.slice(1, 13));
+
+                /* ================= FUEL ================= */
+                const fuel1 = normalize12(kpi.fuelConsumption?.type1?.length == 12 ? kpi.fuelConsumption?.type1 : kpi.fuelConsumption?.type1.slice(1, 13));
+                const fuel2 = normalize12(kpi.fuelConsumption?.type2?.length == 12 ? kpi.fuelConsumption?.type2 : kpi.fuelConsumption?.type2.slice(1, 13));
+                const fuel3 = normalize12(kpi.fuelConsumption?.type3?.length == 12 ? kpi.fuelConsumption?.type3 : kpi.fuelConsumption?.type3.slice(1, 13));
+
+                const totalFuelConsumption = normalize12(
+                    kpi.stationaryCombustion?.data?.[0]?.total_fuel_consumption
+                );
+
+                const fuelStationary = normalize12(
+                    kpi.stationaryCombustion?.data?.[0]?.fuel_stationary
+                );
+
+                /* ================= WATER ================= */
+
+                const waterDischarge = normalize12(kpi.water?.data?.waterDischarge.length == 12 ? kpi.water?.data?.waterDischarge : kpi.water?.data?.waterDischarge.slice(1, 13));
+                const waterUsage = normalize12(kpi.water?.data?.waterWithdrawal.length == 12 ? kpi.water?.data?.waterWithdrawal : kpi.water?.data?.waterWithdrawal.slice(1, 13));
+                const waterTreated = normalize12(kpi.water?.data?.waterTreatment.length == 12 ? kpi.water?.data?.waterTreatment : kpi.water?.data?.waterTreatment.slice(1, 13));
+                const waterEmission = normalize12(kpi.water?.data?.waterEmission.length == 12 ? kpi.water?.data?.waterEmission : kpi.water?.data?.waterEmission.slice(1, 13));
+
+                /* ================= GENERAL DATA ================= */
+
+                const purchaseGoodsEmission = normalize12(
+                    kpi.generalData?.data?.purchaseGoodsAndServices.length == 12 ? kpi.generalData?.data?.purchaseGoodsAndServices : kpi.generalData?.data?.purchaseGoodsAndServices.slice(1, 13)
+                );
+
+                const purchaseItemPerAmount = normalize12(
+                    kpi.generalData?.data?.purchaseGoodsAndServicesValueQuantity.length == 12 ? kpi.generalData?.data?.purchaseGoodsAndServicesValueQuantity : kpi.generalData?.data?.purchaseGoodsAndServicesValueQuantity.slice(1, 13)
+                );
+
+                const noOfEmployees = normalize12(kpi.generalData?.data?.noOfEmployee.length == 12 ? kpi.generalData?.data?.noOfEmployee : kpi.generalData?.data?.noOfEmployee.slice(1, 13));
+                const dieselVehicles = normalize12(kpi.generalData?.data?.noOfDieselVehicles.length == 12 ? kpi.generalData?.data?.noOfDieselVehicles : kpi.generalData?.data?.noOfDieselVehicles.slice(1, 13));
+                const petrolVehicles = normalize12(kpi.generalData?.data?.noOfPetrolVehicles.length == 12 ? kpi.generalData?.data?.noOfPetrolVehicles : kpi.generalData?.data?.noOfPetrolVehicles.slice(1, 13));
+                const totalVehicles = normalize12(kpi.generalData?.data?.totalVehicles.length == 12 ? kpi.generalData?.data?.totalVehicles : kpi.generalData?.data?.totalVehicles.slice(1, 13));
+                const totalArea = normalize12(kpi.generalData?.data?.total_area.length == 12 ? kpi.generalData?.data?.total_area : kpi.generalData?.data?.total_area.slice(1, 13));
+                const energyRefArea = normalize12(kpi.generalData?.data?.energy_ref_area.length == 12 ? kpi.generalData?.data?.energy_ref_area : kpi.generalData?.data?.energy_ref_area.slice(1, 13));
+
+                /* ================= FINAL JSON ================= */
+                return {
+
+                    /* -------- SCOPES -------- */
+
+                    "Scope 1": {
+                        annual: Number(stationary.scope1),
+                        monthly: scope1Monthly
+                    },
+                    "Scope 2": {
+                        annual: Number(stationary.scope2),
+                        monthly: scope2Monthly
+                    },
+                    "Scope 3": {
+                        annual: Number(stationary.scope3),
+                        monthly: scope3Monthly
+                    },
+
+                    "Total Emissions": {
+                        annual:
+                            parseFloat(Number(stationary.scope1) +
+                                Number(stationary.scope2) +
+                                Number(stationary.scope3)).toFixed(3),
+                        monthly: totalEmissionsMonthly
+                    },
+
+                    /* -------- VEHICLES -------- */
+
+                    "Owned Passenger Vehicle Emiss. - Diesel": emptyNull12(kpi?.passengerVehicle?.data?.vehicle_diesel.length == 12 ? kpi?.passengerVehicle?.data?.vehicle_diesel : kpi?.passengerVehicle?.data?.vehicle_diesel.slice(1, 13)),
+                    "Owned Passenger Vehicle Emiss. - Petrol": emptyNull12(kpi?.passengerVehicle?.data?.vehicle_petrol.length == 12 ? kpi?.passengerVehicle?.data?.vehicle_petrol : kpi?.passengerVehicle?.data?.vehicle_petrol.slice(1, 13)),
+                    "Total Owned Passenger Vehicle Emiss.": emptyNull12(kpi?.passengerVehicle?.data?.total_vehicle.length == 12 ? kpi?.passengerVehicle?.data?.total_vehicle : kpi?.passengerVehicle?.data?.total_vehicle.slice(1, 13)),
+                    "Owned Transport Vehicle Emiss.": emptyNull12(kpi?.transportVehicle?.data?.owend_transport.length == 12 ? kpi?.transportVehicle?.data?.owend_transport : kpi?.transportVehicle?.data?.owend_transport.slice(1, 13)),
+                    "Owned Freight Vehicle Emiss.": emptyNull12(kpi?.transportVehicle?.data?.freight_transport.length == 12 ? kpi?.transportVehicle?.data?.freight_transport : kpi?.transportVehicle?.data?.freight_transport.slice(1, 13)),
+
+                    /* -------- TRAVEL -------- */
+
+                    "Emissions in Flight travel": emptyNull12(kpi?.businessTravel?.data?.flightTravelDetails.length == 12 ? kpi?.businessTravel?.data?.flightTravelDetails : kpi?.businessTravel?.data?.flightTravelDetails.slice(1, 13)),
+                    "Emissions in Other mode of travel": emptyNull12(kpi?.businessTravel?.data?.othermodesOfTransportDetails.length == 12 ? kpi?.businessTravel?.data?.othermodesOfTransportDetails : kpi?.businessTravel?.data?.othermodesOfTransportDetails.slice(1, 13)),
+                    "Emissions in Hotel stay": emptyNull12(kpi?.businessTravel?.data?.hotelstayDetails.length == 12 ? kpi?.businessTravel?.data?.hotelstayDetails : kpi?.businessTravel?.data?.hotelstayDetails.slice(1, 13)),
+
+                    /* -------- EMPLOYEE -------- */
+
+                    "Emissions in Employee commute": emptyZero12(kpi?.employeeCommute?.data?.employeeCommutingEmission.length == 12 ? kpi?.employeeCommute?.data?.employeeCommutingEmission : kpi?.employeeCommute?.data?.employeeCommutingEmission.slice(1, 13)),
+                    "Total no. of working days": emptyZero12(kpi?.employeeCommute?.data?.employeeCommutingWorkingDays.length == 12 ? kpi?.employeeCommute?.data?.employeeCommutingWorkingDays : kpi?.employeeCommute?.data?.employeeCommutingWorkingDays.slice(1, 13)),
+
+                    /* -------- WASTE -------- */
+
+                    "Emissions in waste treatment": emptyNull12(kpi?.waste?.waste_emissions.length == 12 ? kpi?.waste?.waste_emissions : kpi?.waste?.waste_emissions.slice(1, 13)),
+                    "Waste Generated": emptyNull12(kpi?.waste?.waste_disposed.length == 12 ? kpi?.waste?.waste_disposed : kpi?.waste?.waste_disposed.slice(1, 13)),
+                    "Waste Diverted": emptyNull12(kpi?.waste?.diverted_emssion.length == 12 ? kpi?.waste?.diverted_emssion : kpi?.waste?.diverted_emssion.slice(1, 13)),
+
+                    /* -------- WATER -------- */
+
+                    "Water Discharged": {
+                        annual: sumAnnual(waterDischarge),
+                        monthly: waterDischarge
+                    },
+                    "Water Usage": {
+                        annual: sumAnnual(waterUsage),
+                        monthly: waterUsage
+                    },
+                    "Water Treated": {
+                        annual: sumAnnual(waterTreated),
+                        monthly: waterTreated
+                    },
+                    "Emissions in water treatment": {
+                        annual: sumAnnual(waterEmission),
+                        monthly: waterEmission
+                    },
+
+                    /* -------- ENERGY -------- */
+
+                    "Heating + Cooling": {
+                        annual: sumAnnual(heatingCooling),
+                        monthly: heatingCooling
+                    },
+                    "Electricity": {
+                        annual: sumAnnual(electricity),
+                        monthly: electricity
+                    },
+                    "Total Energy Consumed": {
+                        annual: sumAnnual(totalEnergyConsumed),
+                        monthly: totalEnergyConsumed
+                    },
+                    "Renewable Electricity": {
+                        annual: sumAnnual(renewable),
+                        monthly: renewable
+                    },
+
+                    /* -------- FUEL -------- */
+
+                    "fuel1": { id: 1, annual: sumAnnual(fuel1), monthly: fuel1 },
+                    "fuel2": { id: 2, annual: sumAnnual(fuel2), monthly: fuel2 },
+                    "fuel3": { id: 3, annual: sumAnnual(fuel3), monthly: fuel3 },
+
+                    "Total Fuel Consumption": {
+                        annual: sumAnnual(totalFuelConsumption),
+                        monthly: totalFuelConsumption
+                    },
+                    "Fuel Stationary": {
+                        annual: sumAnnual(fuelStationary),
+                        monthly: fuelStationary
+                    },
+
+                    /* -------- GENERAL -------- */
+
+                    "Total Output": emptyNull12(),
+                    "Total Revenue (in Mn)": emptyNull12(),
+
+                    "No. of Employees": {
+                        annual: null,
+                        monthly: noOfEmployees
+                    },
+                    "No. of vehicles (Diesel)": {
+                        annual: null,
+                        monthly: dieselVehicles
+                    },
+                    "No. of vehicles (Petrol)": {
+                        annual: null,
+                        monthly: petrolVehicles
+                    },
+                    "Total vehicles": {
+                        annual: null,
+                        monthly: totalVehicles
+                    },
+
+                    "Total Emission Purchase Goods & Services": {
+                        annual: sumAnnual(purchaseGoodsEmission),
+                        monthly: purchaseGoodsEmission
+                    },
+                    "Total Area": {
+                        annual: null,
+                        monthly: totalArea
+                    },
+                    "Energy Ref Area": {
+                        annual: null,
+                        monthly: energyRefArea
+                    },
+                    "Total Emission Purchase Items Per Amount": {
+                        annual: sumAnnual(purchaseItemPerAmount),
+                        monthly: purchaseItemPerAmount
+                    }
+                };
+            };
+
+            const finalJson = await buildFinalInventoryJson(kpiResponses);
+            await kpiFunction.addKpiInventory({ facility_id: facilityId, year, user_id, jsonData: finalJson });
+
+            await kpiModel.deleteTemp(facilityId, year);
+        })
+    );
 
     return res.status(200).json({
         success: true,
@@ -3969,710 +4221,4 @@ exports.kpiStep4 = async (req, res) => {
         data: results
     });
 
-};
-
-
-// --------------------------- KPI function ===============================
-
-const kpiInventory = async (body) => {
-    const { facilities, year, user_id } = body;
-
-    let finalyear = "";
-    let finalyeardata = "2";
-    let where = ` where user_id = '${user_id}'`;
-    const financialyear = await getSelectedColumn(
-        "financial_year_setting",
-        where,
-        "*"
-    );
-    if (financialyear.length > 0) {
-        let final_year = financialyear[0].financial_year;
-        if (final_year == "2") {
-            finalyear = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
-            finalyeardata = "2";
-        } else {
-            finalyear = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
-            finalyeardata = "1";
-        }
-    } else {
-        finalyear = [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-        ];
-        finalyeardata = "2";
-    }
-    let month = finalyear;
-    let monthlyData = {};
-    let monthlyData1 = {};
-    let monthlyData2 = {};
-    month.forEach((month) => {
-        monthlyData[month] = null;
-        monthlyData1[month] = null;
-        monthlyData2[month] = null;
-    });
-    let array = [];
-    let array1 = [];
-    let array2 = [];
-    let array3 = [];
-    let scope1month = [];
-    let scope1 = [];
-    let scope2month = [];
-    let scope3month = [];
-    let scope2 = [];
-    let scope3 = [];
-
-    let categorydata,
-        categorydata2,
-        categorydata3,
-        categorydata4,
-        categorydata5,
-        categorydata6,
-        categorydata7,
-        categorydata8,
-        categorydata9,
-        categorydata10,
-        categorydata11,
-        categorydata12,
-        categorydata13,
-        categorydata14,
-        categorydata15,
-        categorydata16,
-        categorydata17,
-        categorydata18,
-        categorydata19,
-        categorydata20,
-        categorydata21 = "";
-    let sum = 0;
-    let sum1 = 0;
-    let sum2 = 0;
-    if (facilities) {
-        let facilitiesdata = "";
-        if (facilities != "0") {
-            facilitiesdata = facilities.replace(/\[|\]/g, "");
-        } else {
-            facilitiesdata = "0";
-        }
-
-        categorydata = await kpiModel.getCombustionEmission(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata2 = await kpiModel.Allrefrigerants(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata3 = await kpiModel.Allfireextinguisher(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata4 = await kpiModel.getAllcompanyownedvehicles(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        array1 = [
-            ...categorydata,
-            ...categorydata2,
-            ...categorydata3,
-            ...categorydata4,
-        ];
-        if (array1) {
-            await Promise.all(
-                array1.map(async (item) => {
-                    if (item.month_number && monthlyData.hasOwnProperty(item.month_number)) {
-                        monthlyData[item.month_number] += parseFloat(item.emission) || null;
-                        let emissionFixed = parseFloat(item.emission) || null;
-                        sum += emissionFixed || 0;
-                    }
-                })
-            );
-            scope1month.push(Object.keys(monthlyData));
-            scope1.push(Object.values(monthlyData).map((num) => num !== null ? parseFloat(num / 1000).toFixed(3) : null));
-        }
-
-        categorydata5 = await kpiModel.getAllelectricity(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata6 = await kpiModel.getAllheatandsteam(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        array2 = [...categorydata5, ...categorydata6];
-        if (array2) {
-            await Promise.all(
-                array2.map(async (item) => {
-                    if (
-                        item.month_number &&
-                        monthlyData1.hasOwnProperty(item.month_number)
-                    ) {
-                        monthlyData1[item.month_number] += parseFloat(item.emission) || null;
-                        let emissionFixed = parseFloat(item.emission) || null;
-                        sum1 += emissionFixed || 0;
-                        // Add emission value to the corresponding month
-                    }
-                })
-            );
-            scope2month.push(Object.keys(monthlyData1));
-            scope2.push(Object.values(monthlyData1).map((num) => num !== null ? parseFloat(num / 1000).toFixed(3) : null));
-        }
-        categorydata7 = await kpiModel.purchaseGoodsDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata8 = await kpiModel.flight_travelDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        let hotelstayDetails = await kpiModel.hotel_stayDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        let othermodes_of_transportDetails =
-            await kpiModel.other_modes_of_transportDetails(
-                facilitiesdata,
-                year,
-                finalyeardata
-            );
-
-        categorydata9 = await kpiModel.processing_of_sold_products_categoryDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata10 = await kpiModel.sold_product_categoryDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata11 = await kpiModel.endoflife_waste_typeDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata12 = await kpiModel.water_supply_treatment_categoryDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-
-        categorydata13 = await kpiModel.employee_commuting_categoryDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata14 = await kpiModel.homeoffice_categoryDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata15 = await kpiModel.waste_generated_emissionsDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-
-        categorydata16 = await kpiModel.upstreamLease_emissionDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata17 = await kpiModel.downstreamLease_emissionDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata18 = await kpiModel.franchise_categories_emissionDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata19 = await kpiModel.investment_emissionsDetails(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-
-        categorydata20 = await kpiModel.upstream_vehicle_storage_emissions(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-        categorydata21 = await kpiModel.downstream_vehicle_storage_emissions(
-            facilitiesdata,
-            year,
-            finalyeardata
-        );
-
-        array3 = [
-            ...categorydata7,
-            ...categorydata8,
-            ...hotelstayDetails,
-            ...othermodes_of_transportDetails,
-            ...categorydata9,
-            ...categorydata10,
-            ...categorydata11,
-            ...categorydata11,
-            ...categorydata12,
-            ...categorydata13,
-            ...categorydata14,
-            ...categorydata15,
-            ...categorydata16,
-            ...categorydata17,
-            ...categorydata18,
-            ...categorydata19,
-            ...categorydata20,
-            ...categorydata21,
-        ];
-
-        if (array3) {
-            await Promise.all(
-                array3.map(async (item) => {
-                    let monthlyEmission = 0;
-                    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                    if (item.month_number && monthlyData2.hasOwnProperty(item.month_number)) {
-                        if (item.category === "Employee Commuting" || item.category === "Home Office") {
-                            const yearlyEmission = parseFloat(item.emission) || 0;
-                            const dividedEmission = yearlyEmission / 12;
-
-                            monthNames.forEach((month) => {
-                                if (!monthlyData2.hasOwnProperty(month) || monthlyData2[month] === null) {
-                                    monthlyData2[month] = 0;
-                                }
-                                monthlyData2[month] += dividedEmission;
-                            });
-
-                            monthlyEmission = yearlyEmission;
-                        } else {
-                            const regularEmission = parseFloat(item.emission) || 0;
-                            const month = item.month_number;
-                            if (!monthlyData2.hasOwnProperty(month) || monthlyData2[month] === null) {
-                                monthlyData2[month] = 0;
-                            }
-                            monthlyData2[month] += regularEmission;
-                            monthlyEmission = regularEmission;
-                        }
-
-                        sum2 += monthlyEmission;
-                    }
-                })
-            );
-
-            if (categorydata.length > 0) {
-                for (item of categorydata) {
-                    if (item.month_number &&
-                        monthlyData2.hasOwnProperty(item.month_number)) {
-                        monthlyData2[item.month_number] += parseFloat(
-                            item?.scope3_emission ? item?.scope3_emission : 0
-                        );
-                        sum2 += parseFloat(
-                            item?.scope3_emission ? item?.scope3_emission : 0
-                        );
-                    }
-                }
-            }
-
-            if (categorydata5.length > 0) {
-                for (item of categorydata5) {
-                    if (item.month_number &&
-                        monthlyData2.hasOwnProperty(item.month_number)) {
-                        monthlyData2[item.month_number] += parseFloat(
-                            item?.scope3_emission ? item?.scope3_emission : 0
-                        );
-                        sum2 += parseFloat(
-                            item?.scope3_emission ? item?.scope3_emission : 0
-                        );
-                    }
-                }
-            }
-
-            if (categorydata6.length > 0) {
-                for (item of categorydata6) {
-                    if (item.month_number &&
-                        monthlyData2.hasOwnProperty(item.month_number)) {
-                        monthlyData2[item.month_number] += parseFloat(
-                            item?.scope3_emission ? item?.scope3_emission : 0
-                        );
-                        sum2 += parseFloat(
-                            item?.scope3_emission ? item?.scope3_emission : 0
-                        );
-                    }
-                }
-            }
-
-            scope3month.push(Object.keys(monthlyData2));
-            scope3.push(Object.values(monthlyData2).map((num) => num !== null ? parseFloat(num / 1000).toFixed(3) : null));
-        }
-
-        let series = [
-            { name: "Scope 1", data: scope1[0] },
-            { name: "Scope 2", data: scope2[0] },
-            { name: "Scope 3", data: scope3[0] },
-        ];
-
-        let sumtotal1 = sum ? parseFloat(sum / 1000).toFixed(3) : null;
-        let sumtotal2 = sum1 ? parseFloat(sum1 / 1000).toFixed(3) : null;
-        let sumtotal3 = sum2 ? parseFloat(sum2 / 1000).toFixed(3) : null;
-
-        return {
-            success: true,
-            message: "Succesfully fetched category",
-            scope1: sumtotal1,
-            scope2: sumtotal2,
-            scope3: sumtotal3,
-            series: series,
-            series_graph: [
-                parseFloat(sumtotal1),
-                parseFloat(sumtotal2),
-                parseFloat(sumtotal3),
-            ],
-            month: month,
-            status: 200,
-        };
-    }
-}
-
-const kpiInventoryEnergyUse = async (body) => {
-    const { facilities, year, user_id } = body;
-
-    let finalyear = "";
-    let finalyeardata = "2";
-    let where = ` where user_id = '${user_id}'`;
-    const financialyear = await getSelectedColumn(
-        "financial_year_setting",
-        where,
-        "*"
-    );
-    if (financialyear.length > 0) {
-        let final_year = financialyear[0].financial_year;
-        if (final_year == "2") {
-            finalyear = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
-            finalyeardata = "2";
-        } else {
-            finalyear = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
-            finalyeardata = "1";
-        }
-    } else {
-        finalyear = [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-        ];
-        finalyeardata = "2";
-    }
-    let month = finalyear;
-    let monthlyData = {};
-    let monthlyData1 = {};
-    let monthlyData2 = {};
-    let monthlyData3 = {};
-    month.forEach((month) => {
-        monthlyData[month] = null;
-        monthlyData1[month] = null;
-        monthlyData2[month] = null;
-        monthlyData3[month] = null;
-    });
-    const stationaryCombusiton = await kpiModel.fuelStationaryCombusiton(facilities, year, finalyeardata);
-    if (stationaryCombusiton) {
-        let overallAnnualSum = null;
-        await Promise.all(
-            stationaryCombusiton.map(async (item) => {
-                if (
-                    item.month_number &&
-                    monthlyData3.hasOwnProperty(item.month_number)
-                ) {
-                    monthlyData3[item.month_number] += Number(item.emission) || null;
-                    overallAnnualSum += Number(item.emission) || null;
-                }
-            })
-        );
-        monthlyData3 = { annual_total: overallAnnualSum, ...monthlyData3 };
-    }
-    const heatandsteamde = await kpiModel.heatandsteamde(facilities, year, finalyeardata);
-    if (heatandsteamde) {
-        let overallAnnualSum = null;
-        await Promise.all(
-            heatandsteamde.map(async (item) => {
-                if (
-                    item.month_number &&
-                    monthlyData.hasOwnProperty(item.month_number)
-                ) {
-                    monthlyData[item.month_number] += Number(item.emission) || null;
-                    overallAnnualSum += Number(item.emission) || null;
-                }
-            })
-        );
-        monthlyData = { annual_total: overallAnnualSum, ...monthlyData };
-    }
-
-    const electricity = await kpiModel.electricity(facilities, year, finalyeardata);
-    if (electricity) {
-        let overallAnnualSum = null;
-
-        await Promise.all(
-            electricity.map(async (item) => {
-                const month = item.month_number;
-                const emission = item.emission !== null ? Number(item.emission) : null;
-
-                if (month && monthlyData1.hasOwnProperty(month)) {
-                    if (emission !== null && !isNaN(emission)) {
-                        monthlyData1[month] = emission;
-                        overallAnnualSum = overallAnnualSum === null ? emission : overallAnnualSum + emission;
-                    }
-                }
-            })
-        );
-
-        monthlyData1 = { annual_total: overallAnnualSum, ...monthlyData1 };
-    }
-
-    const renewableElectricity = await kpiModel.renewableElectricity(facilities, year, finalyeardata);
-    if (renewableElectricity) {
-        let overallAnnualSum1 = null;
-
-        await Promise.all(
-            renewableElectricity.map(async (item) => {
-                const month = item.month_number;
-                const emission = item.emission !== null ? Number(item.emission) : null;
-
-                if (month && monthlyData2.hasOwnProperty(month)) {
-                    if (emission !== null && !isNaN(emission)) {
-                        monthlyData2[month] = emission;
-                        overallAnnualSum1 = overallAnnualSum1 === null ? emission : overallAnnualSum1 + emission;
-                    }
-                }
-            })
-        );
-
-        monthlyData2 = { annual_total: overallAnnualSum1, ...monthlyData2 };
-    }
-
-    return {
-        success: true,
-        message: "Succesfully fetched kpi inventory fuel consumption",
-        data: {
-            stationaryCombusiton: Object.values(monthlyData3),
-            heatingCooling: Object.values(monthlyData),
-            electricity: Object.values(monthlyData1),
-            renewableElectricity: Object.values(monthlyData2)
-        },
-        month: month,
-        status: 200,
-    };
-};
-
-const kpiInventoryPassengerVehicleEmission = async (body) => {
-    const { facilities, year, user_id } = body;
-
-    let finalyear = "";
-    let finalyeardata = "2";
-    let where = ` where user_id = '${user_id}'`;
-    const financialyear = await getSelectedColumn(
-        "financial_year_setting",
-        where,
-        "*"
-    );
-    if (financialyear.length > 0) {
-        let final_year = financialyear[0].financial_year;
-        if (final_year == "2") {
-            finalyear = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
-            finalyeardata = "2";
-        } else {
-            finalyear = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
-            finalyeardata = "1";
-        }
-    } else {
-        finalyear = [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-        ];
-        finalyeardata = "2";
-    }
-    let month = finalyear;
-    let monthlyData1 = {};
-    let monthlyData2 = {};
-    let monthlyData3 = {};
-
-    month.forEach((month) => {
-        monthlyData1[month] = null;
-        monthlyData2[month] = null;
-        monthlyData3[month] = null;
-    });
-
-    const kpiInventoryPassengerVehicleDieselResponse = await kpiModel.kpiInventoryPassengerVehicleDiesel(facilities, year, finalyeardata);
-    if (kpiInventoryPassengerVehicleDieselResponse) {
-        let overallAnnualSum = null;
-        await Promise.all(
-            kpiInventoryPassengerVehicleDieselResponse.map(async (item) => {
-                if (item.month_number && monthlyData1.hasOwnProperty(item.month_number)
-                ) {
-                    monthlyData1[item.month_number] += Number((item.emission / 1000).toFixed(4)) || null;
-                    overallAnnualSum += Number((item.emission / 1000).toFixed(4)) || null;
-                }
-            })
-        );
-        let sortedData = Object.entries(monthlyData1);
-        sortedData.unshift(["annual_total", overallAnnualSum ? Number(overallAnnualSum.toFixed(4)) : null]);
-        monthlyData1 = Object.fromEntries(sortedData);
-    }
-
-    const kpiInventoryPassengerVehiclePetrolResponse = await kpiModel.kpiInventoryPassengerVehiclePetrol(facilities, year, finalyeardata)
-    if (kpiInventoryPassengerVehiclePetrolResponse) {
-        let overallAnnualSum = null;
-        await Promise.all(
-            kpiInventoryPassengerVehiclePetrolResponse.map(async (item) => {
-                if (item.month_number && monthlyData2.hasOwnProperty(item.month_number)
-                ) {
-                    monthlyData2[item.month_number] += Number((item.emission / 1000).toFixed(4)) || null;
-                    overallAnnualSum += Number((item.emission / 1000).toFixed(4)) || null;
-                }
-            })
-        );
-        let sortedData = Object.entries(monthlyData2);
-        sortedData.unshift(["annual_total", overallAnnualSum ? Number(overallAnnualSum.toFixed(4)) : null]);
-        monthlyData2 = Object.fromEntries(sortedData);
-    }
-
-    const kpiInventoryPassengerVehicleResponse = await kpiModel.kpiInventoryPassengerVehicle(facilities, year, finalyeardata)
-    if (kpiInventoryPassengerVehicleResponse) {
-        let overallAnnualSum = null;
-        await Promise.all(
-            kpiInventoryPassengerVehicleResponse.map(async (item) => {
-                if (item.month_number && monthlyData3.hasOwnProperty(item.month_number)
-                ) {
-                    monthlyData3[item.month_number] += Number((item.emission / 1000).toFixed(4)) || null;
-                    overallAnnualSum += Number((item.emission / 1000).toFixed(4)) || null;
-                }
-            })
-        );
-        let sortedData = Object.entries(monthlyData3);
-        sortedData.unshift(["annual_total", overallAnnualSum ? Number(overallAnnualSum.toFixed(4)) : null]);
-        monthlyData3 = Object.fromEntries(sortedData);
-    }
-
-    return {
-        success: true,
-        message: "Succesfully fetched kpi inventory passenger vehicle",
-        data: {
-            vehicle_diesel: Object.values(monthlyData1),
-            vehicle_petrol: Object.values(monthlyData2),
-            total_vehicle: Object.values(monthlyData3)
-        },
-        month: month,
-        status: 200,
-    };
 };

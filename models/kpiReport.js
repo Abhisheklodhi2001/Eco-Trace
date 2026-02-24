@@ -1236,11 +1236,11 @@ module.exports = {
     },
 
     getTemp: async (facilityId, year, step) => {
-        const [rows] = await db.query(
+        const rows = await db.query(
             `SELECT json_data FROM kpi_inventory_temp
          WHERE facility_id=? AND year=? AND step=?`,
             [facilityId, year, step]
-        );
+        );        
         return rows.length ? JSON.parse(rows[0].json_data) : {};
     },
 
